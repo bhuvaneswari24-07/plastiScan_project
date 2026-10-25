@@ -1,0 +1,235 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PlastiScan</title>
+<style>
+:root{--bg:#f4f7f5;--card:#fff;--ink:#16231d;--mute:#5d6b64;--line:#d8e1dc;--green:#1f7a5a;--blue:#1d5fa8;--warn:#b4561b;--soft:#e8f1ec}
+[data-theme=dark]{--bg:#0f1713;--card:#17221c;--ink:#e6efe9;--mute:#93a49b;--line:#2a3a32;--green:#4fc08f;--blue:#6fa8e8;--warn:#e89a62;--soft:#1d2c24}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,"Segoe UI","Noto Sans Tamil",sans-serif;line-height:1.5}
+button,input,select{font:inherit;color:inherit}
+button{cursor:pointer;border:1px solid var(--line);background:var(--card);padding:.5rem .9rem;border-radius:8px}
+button.primary{background:var(--green);border-color:var(--green);color:#fff}
+[data-theme=dark] button.primary{color:#07130d}
+button:disabled{opacity:.5;cursor:not-allowed}
+:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
+input,select{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:.55rem .7rem;width:100%}
+header{display:flex;flex-wrap:wrap;gap:.75rem;align-items:center;justify-content:space-between;padding:.8rem 1.2rem;border-bottom:1px solid var(--line);background:var(--card)}
+.brand{font-weight:700;font-size:1.25rem;color:var(--green)}
+.brand small{display:block;font-weight:400;font-size:.72rem;color:var(--mute)}
+.tools{display:flex;gap:.5rem;align-items:center;flex-wrap:wrap}
+.tools select{width:auto}
+nav{display:flex;gap:.25rem;padding:.5rem 1.2rem;border-bottom:1px solid var(--line);overflow-x:auto}
+nav button{border:0;background:none;border-radius:6px;white-space:nowrap}
+nav button.on{background:var(--soft);color:var(--green);font-weight:600}
+main{max-width:980px;margin:0 auto;padding:1.2rem}
+h2{margin:.2rem 0 1rem}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:.9rem}
+.tile{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:1rem}
+.lbl{color:var(--mute);font-size:.85rem}.val{font-size:1.4rem;font-weight:650;margin-top:.2rem}.sub{font-size:.85rem;color:var(--mute)}
+.low,.dry,.high,.wet,.attention{color:var(--warn)}.optimal,.good{color:var(--green)}.moderate{color:var(--blue)}
+.mp.low{color:var(--green)}.mp.moderate,.mp.high{color:var(--warn)}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:1.1rem;margin-bottom:1rem}
+.row{display:flex;gap:.6rem;flex-wrap:wrap;align-items:center}
+.empty{padding:1.2rem;border:1px dashed var(--line);border-radius:10px;color:var(--mute);margin-bottom:1rem}
+.note{font-size:.82rem;color:var(--mute);margin-top:.7rem}
+.dot{width:.6rem;height:.6rem;border-radius:50%;background:var(--mute);display:inline-block}.dot.on{background:var(--green)}
+.login{max-width:380px;margin:6vh auto;padding:1.5rem}
+.login label{display:block;margin:.7rem 0 .2rem;font-size:.88rem;color:var(--mute)}
+.err{color:var(--warn);margin:.6rem 0}
+.preview{max-width:100%;max-height:260px;border-radius:8px;margin-top:.8rem}
+table{width:100%;border-collapse:collapse}td,th{padding:.55rem .6rem;border-bottom:1px solid var(--line);text-align:left}
+@media print{header,nav,.noprint{display:none!important}body{background:#fff;color:#000}.panel,.tile{border-color:#999}}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script>
+/* ===== Language strings ===== */
+const T={
+en:{tagline:'Smart Soil Analysis and Microplastic Detection',login:'Log in',register:'Create account',name:'Name',email:'Email',password:'Password',logout:'Log out',demo:'Demo account: demo@plastiscan.com / demo123',badLogin:'Incorrect email or password',exists:'Account already exists',haveAcc:'Have an account? Log in',noAcc:'New here? Create account',welcome:'Welcome',dash:'Dashboard',device:'Device',image:'Image analysis',history:'History',report:'Report',mp:'Microplastic level',npk:'NPK status',moist:'Moisture',cond:'Soil condition',loc:'Location',none:'Not measured yet',empty:'No results yet. Connect the device or analyze a soil image to see results.',low:'Low',moderate:'Moderate',high:'High',optimal:'Optimal',dry:'Dry',wet:'Too wet',good:'Healthy',attention:'Needs attention',connect:'Connect ESP32 (simulated)',connecting:'Connecting…',connected:'Connected',disconnected:'Not connected',disconnect:'Disconnect',read:'Read sensors',reading:'Reading…',simNote:'Values are simulated for demonstration. Replace readDevice() in the script with real ESP32 data.',upload:'Upload or capture soil image',analyzing:'Analyzing…',particles:'Particle-like pixels',save:'Save to history',saved:'Saved',view:'View report',print:'Print report',clear:'Clear current sample',noHist:'No saved records.',noRep:'Nothing to report. Run an analysis first.',disc:'Preliminary screening only, not a laboratory-confirmed result.',date:'Date',n:'Nitrogen (N)',p:'Phosphorus (P)',k:'Potassium (K)',theme:'Theme',light:'Light',dark:'Dark'},
+ta:{tagline:'ஸ்மார்ட் மண் பகுப்பாய்வு மற்றும் நுண்பிளாஸ்டிக் கண்டறிதல்',login:'உள்நுழை',register:'கணக்கு உருவாக்கு',name:'பெயர்',email:'மின்னஞ்சல்',password:'கடவுச்சொல்',logout:'வெளியேறு',demo:'டெமோ கணக்கு: demo@plastiscan.com / demo123',badLogin:'மின்னஞ்சல் அல்லது கடவுச்சொல் தவறு',exists:'கணக்கு ஏற்கனவே உள்ளது',haveAcc:'கணக்கு உள்ளதா? உள்நுழை',noAcc:'புதியவரா? கணக்கு உருவாக்கு',welcome:'வணக்கம்',dash:'முகப்புப் பலகை',device:'சாதனம்',image:'பட ஆய்வு',history:'வரலாறு',report:'அறிக்கை',mp:'நுண்பிளாஸ்டிக் அளவு',npk:'NPK நிலை',moist:'ஈரப்பதம்',cond:'மண் நிலை',loc:'இடம்',none:'இன்னும் அளவிடப்படவில்லை',empty:'முடிவுகள் இல்லை. சாதனத்தை இணைக்கவும் அல்லது மண் படத்தை ஆய்வு செய்யவும்.',low:'குறைவு',moderate:'மிதமானது',high:'அதிகம்',optimal:'உகந்தது',dry:'வறண்டது',wet:'அதிக ஈரம்',good:'ஆரோக்கியமானது',attention:'கவனம் தேவை',connect:'ESP32 இணை (மாதிரி)',connecting:'இணைக்கிறது…',connected:'இணைக்கப்பட்டது',disconnected:'இணைக்கப்படவில்லை',disconnect:'துண்டி',read:'சென்சார்களைப் படி',reading:'படிக்கிறது…',simNote:'மதிப்புகள் செயல்விளக்கத்திற்காக உருவகப்படுத்தப்பட்டவை. ஸ்கிரிப்டில் readDevice() ஐ உண்மையான ESP32 தரவால் மாற்றவும்.',upload:'மண் படத்தைப் பதிவேற்று / எடு',analyzing:'ஆய்வு செய்கிறது…',particles:'துகள் போன்ற பிக்சல்கள்',save:'வரலாற்றில் சேமி',saved:'சேமிக்கப்பட்டது',view:'அறிக்கையைப் பார்',print:'அறிக்கையை அச்சிடு',clear:'தற்போதைய மாதிரியை அழி',noHist:'சேமித்த பதிவுகள் இல்லை.',noRep:'அறிக்கை இல்லை. முதலில் ஆய்வை இயக்கவும்.',disc:'இது ஆரம்பநிலை ஆய்வு மட்டுமே; ஆய்வகத்தால் உறுதிப்படுத்தப்பட்ட முடிவு அல்ல.',date:'தேதி',n:'நைட்ரஜன் (N)',p:'பாஸ்பரஸ் (P)',k:'பொட்டாசியம் (K)',theme:'தீம்',light:'ஒளி',dark:'இருள்'}
+};
+
+/* ===== Storage (wrapped: it can fail) ===== */
+const load=(k,d)=>{try{const v=JSON.parse(localStorage.getItem(k));return v??d}catch(e){return d}};
+const store=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}};
+const DEMO={name:'Demo User',email:'demo@plastiscan.com',password:'demo123'};
+const getUsers=()=>{const u=load('ps_users',[]);return u.some(x=>x.email===DEMO.email)?u:[DEMO,...u]};
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+/* ===== Classification rules (prototype thresholds) ===== */
+const mpLevel=s=>s<2?'low':s<6?'moderate':'high';
+const band=(v,a,b)=>v<a?'low':v<b?'optimal':'high';
+const moistLevel=m=>m<20?'dry':m<60?'optimal':'wet';
+const nutrient=d=>d&&{n:band(d.n,40,80),p:band(d.p,15,40),k:band(d.k,80,160)};
+function condition(device,image){
+  if(!device&&!image)return null;
+  let issues=0;
+  if(device){issues+=Object.values(nutrient(device)).filter(x=>x==='low').length;if(moistLevel(device.moisture)!=='optimal')issues++}
+  if(image&&mpLevel(image.score)!=='low')issues++;
+  return issues===0?'good':'attention';
+}
+
+/* ===== Simulated ESP32 — replace readDevice() with real data ===== */
+const rnd=(a,b)=>Math.round(a+Math.random()*(b-a));
+const getGps=()=>new Promise(res=>{
+  if(!navigator.geolocation)return res(null);
+  navigator.geolocation.getCurrentPosition(p=>res({lat:+p.coords.latitude.toFixed(5),lon:+p.coords.longitude.toFixed(5)}),()=>res(null),{timeout:3000});
+});
+async function readDevice(){
+  await new Promise(r=>setTimeout(r,900));
+  return{n:rnd(10,110),p:rnd(5,55),k:rnd(40,200),moisture:rnd(8,75),gps:await getGps()};
+}
+
+/* ===== Image screening: flags pixels that do not look like earth tones ===== */
+async function analyzeImage(file){
+  const url=URL.createObjectURL(file);
+  try{
+    const img=await new Promise((res,rej)=>{const i=new Image();i.onload=()=>res(i);i.onerror=rej;i.src=url});
+    const W=160,H=Math.max(1,Math.round(160*img.height/img.width));
+    const c=document.createElement('canvas');c.width=W;c.height=H;
+    const ctx=c.getContext('2d');ctx.drawImage(img,0,0,W,H);
+    const d=ctx.getImageData(0,0,W,H).data;let flagged=0;
+    for(let i=0;i<d.length;i+=4){
+      const r=d[i],g=d[i+1],b=d[i+2],max=Math.max(r,g,b),min=Math.min(r,g,b),s=max?(max-min)/max:0;
+      if(b>r+12||(max>215&&s<.18)||(s>.5&&g>r+20))flagged++;
+    }
+    return{score:+(flagged/(W*H)*100).toFixed(1),preview:url};
+  }catch(e){URL.revokeObjectURL(url);throw e}
+}
+
+/* ===== State ===== */
+const S={lang:load('ps_lang','en'),theme:load('ps_theme','light'),user:null,page:'dash',mode:'login',err:'',
+  cur:{device:null,image:null},dev:'off',busy:false,hist:[],rep:null,msg:''};
+S.user=getUsers().find(u=>u.email===load('ps_session',''))||null;
+if(S.user)S.hist=load('ps_hist_'+S.user.email,[]);
+const t=()=>T[S.lang];
+const locale=()=>S.lang==='ta'?'ta-IN':'en-IN';
+
+/* ===== Views ===== */
+const lv=k=>`<span class="${k}">${t()[k]}</span>`;
+function tile(label,val,sub){return`<div class="tile"><div class="lbl">${label}</div><div class="val">${val}</div>${sub?`<div class="sub">${sub}</div>`:''}</div>`}
+function results(rec){
+  const x=t(),nk=nutrient(rec.device),cd=condition(rec.device,rec.image);
+  return`<div class="grid">
+  ${tile(x.mp,rec.image?`<span class="mp ${mpLevel(rec.image.score)}">${x[mpLevel(rec.image.score)]}</span>`:x.none,rec.image?`${x.particles}: ${rec.image.score}%`:'')}
+  ${tile(x.npk,nk?['n','p','k'].map(q=>`${q.toUpperCase()}: ${lv(nk[q])}`).join(' &nbsp; '):x.none,rec.device?`N ${rec.device.n} · P ${rec.device.p} · K ${rec.device.k}`:'')}
+  ${tile(x.moist,rec.device?lv(moistLevel(rec.device.moisture)):x.none,rec.device?rec.device.moisture+'%':'')}
+  ${tile(x.cond,cd?lv(cd):x.none)}
+  ${tile(x.loc,rec.device&&rec.device.gps?`${rec.device.gps.lat}, ${rec.device.gps.lon}`:x.none)}</div>`;
+}
+function langSel(){return`<select aria-label="Language" id="lang"><option value="en"${S.lang==='en'?' selected':''}>English</option><option value="ta"${S.lang==='ta'?' selected':''}>தமிழ்</option></select>`}
+function loginView(){
+  const x=t(),reg=S.mode==='register';
+  return`<div class="tools" style="justify-content:flex-end;padding:.8rem 1.2rem">${langSel()}</div>
+  <form class="panel login" id="loginForm">
+    <h2 style="color:var(--green)">PlastiScan</h2><p class="note">${x.tagline}</p>
+    ${reg?`<label>${x.name}</label><input name="name">`:''}
+    <label>${x.email}</label><input name="email" type="email" required>
+    <label>${x.password}</label><input name="password" type="password" required minlength="4">
+    ${S.err?`<div class="err" role="alert">${S.err}</div>`:''}
+    <div class="row" style="margin-top:1rem"><button class="primary" type="submit">${reg?x.register:x.login}</button>
+    <button type="button" data-act="mode">${reg?x.haveAcc:x.noAcc}</button></div>
+    <p class="note">${x.demo}</p></form>`;
+}
+function pageView(){
+  const x=t(),c=S.cur,has=c.device||c.image;
+  if(S.page==='dash')return`<h2>${x.welcome}, ${esc(S.user.name)}</h2>
+    ${has?results(c):`<div class="empty">${x.empty}</div>`}
+    ${has?`<div class="row noprint" style="margin-top:1rem"><button class="primary" data-act="save">${x.save}</button>
+    <button data-act="viewcur">${x.view}</button><button data-act="clear">${x.clear}</button>${S.msg?`<span class="good" role="status">${S.msg}</span>`:''}</div>`:''}
+    <p class="note">${x.disc}</p>`;
+  if(S.page==='device'){
+    const on=S.dev==='on'||S.dev==='reading',lbl={off:x.disconnected,connecting:x.connecting,on:x.connected,reading:x.connected}[S.dev];
+    return`<h2>${x.device}</h2><div class="panel">
+    <div class="row"><span class="dot ${on?'on':''}"></span><strong>ESP32-PS01</strong><span>${lbl}</span></div>
+    <div class="row" style="margin-top:1rem">
+    ${S.dev==='off'?`<button class="primary" data-act="connect">${x.connect}</button>`:''}
+    ${S.dev==='connecting'?`<button disabled>${x.connecting}</button>`:''}
+    ${on?`<button class="primary" data-act="read" ${S.dev==='reading'?'disabled':''}>${S.dev==='reading'?x.reading:x.read}</button>
+    <button data-act="disconnect" ${S.dev==='reading'?'disabled':''}>${x.disconnect}</button>`:''}</div>
+    <p class="note">${x.simNote}</p></div>${c.device?results({device:c.device,image:null}):''}`;
+  }
+  if(S.page==='image')return`<h2>${x.image}</h2><div class="panel">
+    <label class="row"><strong>${x.upload}</strong><input type="file" id="file" accept="image/*" capture="environment" ${S.busy?'disabled':''}></label>
+    ${S.busy?`<p role="status">${x.analyzing}</p>`:''}
+    ${c.image?`<img class="preview" src="${c.image.preview}" alt="Soil sample">
+    <p><strong>${x.mp}:</strong> <span class="mp ${mpLevel(c.image.score)}">${x[mpLevel(c.image.score)]}</span> (${x.particles}: ${c.image.score}%)</p>`:''}
+    <p class="note">${x.disc}</p></div>`;
+  if(S.page==='history')return`<h2>${x.history}</h2>`+(S.hist.length===0?`<div class="empty">${x.noHist}</div>`:
+    `<div class="panel"><table><thead><tr><th>${x.date}</th><th>${x.mp}</th><th>${x.cond}</th><th></th></tr></thead><tbody>
+    ${S.hist.map(r=>{const cd=condition(r.device,r.image);return`<tr><td>${new Date(r.ts).toLocaleString(locale())}</td>
+    <td>${r.image?x[mpLevel(r.image.score)]:'—'}</td><td>${cd?x[cd]:'—'}</td><td><button data-act="view" data-id="${r.id}">${x.view}</button></td></tr>`}).join('')}
+    </tbody></table></div>`);
+  if(S.page==='report'){
+    const r=S.rep;
+    if(!(r&&(r.device||r.image)))return`<h2>${x.report}</h2><div class="empty">${x.noRep}</div>`;
+    const nk=nutrient(r.device);
+    return`<h2>${x.report}</h2><div class="panel"><h3 style="margin-top:0">PlastiScan — ${x.tagline}</h3>
+    <p class="note">${x.date}: ${new Date(r.ts).toLocaleString(locale())} · ${esc(S.user.name)}</p>${results(r)}
+    ${r.device?`<table style="margin-top:1rem"><tbody>
+    ${['n','p','k'].map(q=>`<tr><td>${x[q]}</td><td>${r.device[q]}</td><td class="${nk[q]}">${x[nk[q]]}</td></tr>`).join('')}
+    <tr><td>${x.moist}</td><td>${r.device.moisture}%</td><td class="${moistLevel(r.device.moisture)}">${x[moistLevel(r.device.moisture)]}</td></tr></tbody></table>`:''}
+    <p class="note">${x.disc}</p><button class="primary noprint" data-act="print">${x.print}</button></div>`;
+  }
+  return'';
+}
+function render(){
+  document.documentElement.dataset.theme=S.theme;document.documentElement.lang=S.lang;
+  const app=document.getElementById('app'),x=t();
+  if(!S.user){app.innerHTML=loginView();return}
+  const tabs=[['dash',x.dash],['device',x.device],['image',x.image],['history',x.history],['report',x.report]];
+  app.innerHTML=`<header><div class="brand">PlastiScan<small>${x.tagline}</small></div>
+  <div class="tools">${langSel()}<button data-act="theme" aria-label="${x.theme}">${S.theme==='light'?x.dark:x.light}</button>
+  <button data-act="logout">${x.logout}</button></div></header>
+  <nav>${tabs.map(([k,l])=>`<button data-act="page" data-id="${k}" class="${S.page===k?'on':''}">${l}</button>`).join('')}</nav>
+  <main>${pageView()}</main>`;
+}
+
+/* ===== Actions ===== */
+const snapshot=()=>({id:Date.now(),ts:new Date().toISOString(),device:S.cur.device,image:S.cur.image&&{score:S.cur.image.score}});
+const actions={
+  mode(){S.mode=S.mode==='login'?'register':'login';S.err='';render()},
+  page(id){S.page=id;render()},
+  theme(){S.theme=S.theme==='light'?'dark':'light';store('ps_theme',S.theme);render()},
+  logout(){store('ps_session','');S.user=null;S.cur={device:null,image:null};S.dev='off';S.page='dash';S.hist=[];render()},
+  connect(){S.dev='connecting';render();setTimeout(()=>{S.dev='on';render()},1200)},
+  disconnect(){S.dev='off';render()},
+  async read(){S.dev='reading';render();const d=await readDevice();S.cur.device=d;S.dev='on';render()},
+  save(){S.hist=[snapshot(),...S.hist];store('ps_hist_'+S.user.email,S.hist);S.msg=t().saved;render();setTimeout(()=>{S.msg='';render()},1800)},
+  viewcur(){S.rep=snapshot();S.page='report';render()},
+  view(id){S.rep=S.hist.find(r=>String(r.id)===id)||null;S.page='report';render()},
+  clear(){S.cur={device:null,image:null};render()},
+  print(){window.print()}
+};
+document.addEventListener('click',e=>{
+  const b=e.target.closest('[data-act]');if(!b||b.disabled)return;
+  const f=actions[b.dataset.act];if(f)f(b.dataset.id);
+});
+document.addEventListener('change',async e=>{
+  if(e.target.id==='lang'){S.lang=e.target.value;store('ps_lang',S.lang);render()}
+  if(e.target.id==='file'&&e.target.files[0]){
+    S.busy=true;render();
+    try{S.cur.image=await analyzeImage(e.target.files[0])}catch(err){}
+    S.busy=false;render();
+  }
+});
+document.addEventListener('submit',e=>{
+  if(e.target.id!=='loginForm')return;e.preventDefault();
+  const f=new FormData(e.target),email=String(f.get('email')).trim().toLowerCase(),pw=String(f.get('password')),users=getUsers();
+  let u;
+  if(S.mode==='login'){u=users.find(x=>x.email===email&&x.password===pw);if(!u){S.err=t().badLogin;return render()}}
+  else{
+    if(users.some(x=>x.email===email)){S.err=t().exists;return render()}
+    u={name:String(f.get('name')||'').trim()||email,email,password:pw};
+    store('ps_users',[...users.filter(x=>x.email!==DEMO.email),u]);
+  }
+  store('ps_session',u.email);S.user=u;S.err='';S.hist=load('ps_hist_'+u.email,[]);render();
+});
+render();
+</script>
+</body>
+</html>
